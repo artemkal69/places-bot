@@ -17,6 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Путь к новой базе от OpenStreetMap
 DB_PATH = Path(__file__).parent.parent / "data" / "local.db"
 
 
@@ -41,13 +42,14 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 @app.get("/places")
-def get_places(lat: float = 55.7558, lon: float = 37.6173, radius: float = 100.0):
+def get_places(lat: float = 56.8587, lon: float = 35.9006, radius: float = 50.0):
     conn = get_db()
-    # Выбираем только те, где нет сайта, и добавляем ссылку на Яндекс
+    # Выбираем все места из новой базы.
+    # Если хочешь фильтровать по отсутствию сайта, используй website_status
     query = """
         SELECT id, name, category, address, lat, lon, rating, yandex_url
         FROM places 
-        WHERE website IS NULL
+        WHERE website_status = 'not_listed'
     """
     rows = conn.execute(query).fetchall()
     conn.close()
