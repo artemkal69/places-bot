@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = Path(__file__).parent.parent / "data" / "places.db"
+DB_PATH = Path(__file__).parent.parent / "data" / "local.db"
 
 
 def get_db():
