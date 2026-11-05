@@ -2,55 +2,119 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Гид по местам</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Local — Гид по местам</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        :root {
+            /* Наш фирменный цвет Local (Терракотовый / Warm Craft) */
+            --brand-color: #FF5722; 
+            --brand-color-active: #E64A19;
+            
+            /* Адаптация под тему Telegram */
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #000000);
+            --hint-color: var(--tg-theme-hint-color, #999999);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #f4f4f4);
+        }
+
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-color); color: var(--text-color); overflow: hidden; }
+
+        /* Шапка */
+        #header {
+            position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+            padding: 10px 15px; padding-top: calc(10px + env(safe-area-inset-top));
+            background: var(--bg-color); display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-right: auto; margin-left: 10px;}
+        .logo-text span { color: var(--brand-color); }
+
+        .toggle-btn {
+            background: var(--secondary-bg); border: none; padding: 8px 16px;
+            border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--hint-color);
+            cursor: pointer; transition: 0.2s; margin-left: 5px;
+        }
+        .toggle-btn.active { background: var(--brand-color); color: white; }
+
+        /* Контейнеры */
+        #map-container, #list-container {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+            box-sizing: border-box; padding-top: 60px;
+        }
         #map { width: 100%; height: 100%; }
+        #list-container { overflow-y: auto; display: none; padding-bottom: 20px; }
+        
+        /* Элементы списка */
+        .list-item {
+            background: var(--secondary-bg); margin: 10px 15px; padding: 16px;
+            border-radius: 16px; display: flex; flex-direction: column; cursor: pointer;
+        }
+        .list-item:active { transform: scale(0.98); }
+        .list-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+        .list-desc { font-size: 14px; color: var(--hint-color); }
+
+        /* Нижняя карточка */
         #card {
             position: absolute; bottom: -100%; left: 0; width: 100%;
-            background: white; border-radius: 20px 20px 0 0;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            transition: bottom 0.3s ease-in-out;
-            padding: 20px; box-sizing: border-box;
-            z-index: 1000; max-height: 70%; overflow-y: auto;
+            background: var(--bg-color); border-radius: 24px 24px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+            transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 24px; box-sizing: border-box;
+            z-index: 1000; max-height: 80%; overflow-y: auto;
         }
         #card.open { bottom: 0; }
         .close-btn {
             position: absolute; right: 20px; top: 20px;
-            background: #f0f0f0; border: none; border-radius: 50%;
-            width: 30px; height: 30px; font-size: 16px; cursor: pointer;
+            background: var(--secondary-bg); border: none; border-radius: 50%;
+            width: 32px; height: 32px; font-size: 16px; color: var(--text-color); cursor: pointer;
         }
-        h2 { margin: 0 0 10px 0; font-size: 22px; color: #333; }
-        .category { color: #888; font-size: 14px; margin-bottom: 15px; }
-        .rating { color: #f5a623; font-weight: bold; margin-bottom: 15px; }
-        .btn {
-            display: block; width: 100%; padding: 15px; margin-top: 10px;
-            text-align: center; border-radius: 12px; text-decoration: none;
-            font-weight: bold; font-size: 16px; box-sizing: border-box;
-        }
-        .btn-primary { background: #007aff; color: white; }
-        .btn-secondary { background: #f0f0f0; color: #333; }
+
+        h2 { margin: 0 0 5px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;}
+        .category { color: var(--hint-color); font-size: 15px; margin-bottom: 15px; text-transform: capitalize; }
+        
         .badge {
-            display: inline-block; padding: 5px 10px; border-radius: 20px;
-            font-size: 12px; font-weight: bold; margin-bottom: 15px;
+            display: inline-block; padding: 6px 12px; border-radius: 12px;
+            font-size: 13px; font-weight: 700; margin-bottom: 20px;
+            background: rgba(255, 87, 34, 0.1); color: var(--brand-color);
         }
-        .badge-red { background: #ffebee; color: #c62828; }
-        .badge-yellow { background: #fff8e1; color: #f57f17; }
+        
+        .btn {
+            display: block; width: 100%; padding: 16px; margin-top: 10px;
+            text-align: center; border-radius: 16px; text-decoration: none;
+            font-weight: 700; font-size: 16px; box-sizing: border-box;
+            background: var(--brand-color); color: white;
+            border: none; cursor: pointer; transition: 0.1s;
+        }
+        .btn:active { background: var(--brand-color-active); transform: scale(0.98); }
     </style>
 </head>
 <body>
-    <div id="map"></div>
+
+    <!-- Шапка -->
+    <div id="header">
+        <div class="logo-text">Lo<span>c</span>al</div>
+        <button id="btn-map" class="toggle-btn active" onclick="switchView('map')">Карта</button>
+        <button id="btn-list" class="toggle-btn" onclick="switchView('list')">Список</button>
+    </div>
+
+    <!-- Контейнер с картой -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- Контейнер со списком -->
+    <div id="list-container"></div>
+
+    <!-- Детальная карточка -->
     <div id="card">
         <button class="close-btn" onclick="closeCard()">✕</button>
         <h2 id="place-name">Название</h2>
         <div class="category" id="place-category">Категория</div>
-        <div class="rating" id="place-rating">★ 0.0</div>
-        <div id="place-status"></div>
-        <a href="#" id="btn-route" class="btn btn-primary" target="_blank">Добраться</a>
-        <a href="#" id="btn-site" class="btn btn-secondary" target="_blank">Перейти на сайт</a>
+        <div><span class="badge">Сайта нет</span></div>
+        <a href="#" id="btn-route" class="btn" target="_blank">Построить маршрут</a>
     </div>
 
     <script>
@@ -66,11 +130,46 @@
                 const response = await fetch('/places');
                 const data = await response.json();
                 placesData = data.places;
+                renderList();
                 initMap();
             } catch (error) {
-                console.error("Ошибка загрузки:", error);
-                alert("Не удалось загрузить данные. Проверьте API.");
+                console.error("Ошибка:", error);
             }
+        }
+
+        function switchView(view) {
+            const mapBtn = document.getElementById('btn-map');
+            const listBtn = document.getElementById('btn-list');
+            const mapCont = document.getElementById('map-container');
+            const listCont = document.getElementById('list-container');
+
+            if (view === 'map') {
+                mapBtn.classList.add('active');
+                listBtn.classList.remove('active');
+                mapCont.style.display = 'block';
+                listCont.style.display = 'none';
+                setTimeout(() => { if(myMap) myMap.container.fitToViewport(); }, 100);
+            } else {
+                listBtn.classList.add('active');
+                mapBtn.classList.remove('active');
+                mapCont.style.display = 'none';
+                listCont.style.display = 'block';
+            }
+        }
+
+        function renderList() {
+            const container = document.getElementById('list-container');
+            container.innerHTML = '';
+            placesData.forEach(place => {
+                const el = document.createElement('div');
+                el.className = 'list-item';
+                el.innerHTML = `
+                    <div class="list-title">${place.name}</div>
+                    <div class="list-desc">${place.category || 'Заведение'}</div>
+                `;
+                el.onclick = () => openCard(place);
+                container.appendChild(el);
+            });
         }
 
         function initMap() {
@@ -82,21 +181,18 @@
                 });
 
                 placesData.forEach(place => {
-                    const color = !place.has_website ? 'red' : 'yellow';
-                    
-                    // Создаем маркер (без balloonContent, чтобы не было белой плашки)
+                    // Используем оранжевые маркеры под бренд Local (Warm Craft)
                     const placemark = new ymaps.Placemark([place.lat, place.lon], {
                         hintContent: place.name
                     }, {
-                        preset: `islands#${color}Icon`
+                        preset: 'islands#orangeIcon' 
                     });
 
-                    // При клике вызываем НАШУ функцию openCard
-                    placemark.events.add('click', function (e) {
+                    placemark.events.add('click', () => {
                         openCard(place);
                     });
 
-                    myMap.geoObjects.add(placemark);
+                    myGeoObjects.add(placemark);
                 });
             });
         }
@@ -104,21 +200,7 @@
         function openCard(place) {
             document.getElementById('place-name').textContent = place.name;
             document.getElementById('place-category').textContent = place.category || 'Заведение';
-            document.getElementById('place-rating').textContent = place.rating ? `★ ${place.rating}` : 'Нет рейтинга';
-
-            const statusDiv = document.getElementById('place-status');
-            const btnSite = document.getElementById('btn-site');
             
-            if (!place.has_website) {
-                statusDiv.innerHTML = '<span class="badge badge-red">Сайта нет</span>';
-                btnSite.style.display = 'none';
-            } else {
-                statusDiv.innerHTML = `<span class="badge badge-yellow">Устаревший сайт</span><br><small>${place.reason}</small>`;
-                btnSite.style.display = 'block';
-                // Сюда мы потом добавим реальную ссылку на сайт
-                btnSite.href = `https://yandex.ru/maps/?text=${encodeURIComponent(place.name)}`; 
-            }
-
             const btnRoute = document.getElementById('btn-route');
             btnRoute.href = `https://yandex.ru/maps/?pt=${place.lon},${place.lat}&z=17&l=map`;
 
