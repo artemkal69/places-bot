@@ -46,14 +46,14 @@ def get_places(lat: float = 55.7558, lon: float = 37.6173, radius: float = 100.0
     """
     Получить заведения на карте.
     По умолчанию: Москва, радиус 10 км.
-    Возвращает только те, у кого нет сайта ИЛИ он устаревший (score >= 40).
+    Возвращает только те, у кого нет сайта ИЛИ он устаревший (score >= 80).
     """
     conn = get_db()
     # Берем заведения без сайта или с плохим сайтом
     query = """
         SELECT id, name, category, lat, lon, website, outdated_score, audit_reasons, rating
         FROM places 
-        WHERE (website IS NULL OR outdated_score >= 40)
+        WHERE (website IS NULL OR outdated_score >= 80)
     """
     rows = conn.execute(query).fetchall()
     conn.close()
