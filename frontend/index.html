@@ -105,7 +105,7 @@
         <div class="category" id="place-category">Категория</div>
         <div class="address-text" id="place-address">Адрес</div>
         <div><span class="badge">Сайта нет</span></div>
-        <a href="#" id="btn-route" class="btn" target="_blank">Построить маршрут</a>
+        <a href="#" id="btn-route" class="btn" target="_blank">Открыть в Яндекс.Картах</a>
     </div>
 
     <script>
@@ -193,9 +193,14 @@
             document.getElementById('place-address').textContent = place.address || 'Адрес не указан';
             
             const btnRoute = document.getElementById('btn-route');
-            // Формируем ссылку на поиск места по названию и адресу
-            const searchText = `${place.name}, ${place.address || ''}`;
-            btnRoute.href = `https://yandex.ru/maps/?text=${encodeURIComponent(searchText)}`;
+            
+            // Если в базе есть прямая ссылка на организацию - ведем туда!
+            if (place.yandex_url) {
+                btnRoute.href = place.yandex_url;
+            } else {
+                // Запасной вариант, если ссылки вдруг нет
+                btnRoute.href = `https://yandex.ru/maps/?pt=${place.lon},${place.lat}&z=17&l=map`;
+            }
 
             document.getElementById('card').classList.add('open');
         }

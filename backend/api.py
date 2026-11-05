@@ -43,9 +43,9 @@ def haversine(lat1, lon1, lat2, lon2):
 @app.get("/places")
 def get_places(lat: float = 55.7558, lon: float = 37.6173, radius: float = 100.0):
     conn = get_db()
-    # Показываем ТОЛЬКО те, у кого нет сайта
+    # Выбираем только те, где нет сайта, и добавляем ссылку на Яндекс
     query = """
-        SELECT id, name, category, address, lat, lon, rating
+        SELECT id, name, category, address, lat, lon, rating, yandex_url
         FROM places 
         WHERE website IS NULL
     """
@@ -67,6 +67,7 @@ def get_places(lat: float = 55.7558, lon: float = 37.6173, radius: float = 100.0
                     "lat": row["lat"],
                     "lon": row["lon"],
                     "rating": row["rating"],
+                    "yandex_url": row["yandex_url"],
                 }
             )
     return {"count": len(result), "places": result}
