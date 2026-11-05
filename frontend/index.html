@@ -116,16 +116,49 @@
         let myMap;
         let placesData = [];
 
+        // 1. Сначала инициализируем карту, чтобы она появилась, даже если данные не загрузятся
+        ymaps.ready(function () {
+            myMap = new ymaps.Map("map", {
+                center: [56.8587, 35.9006], // Центр Твери
+                zoom: 12,
+                controls: ['zoomControl', 'geolocationControl']
+            });
+            
+            // Теперь загружаем данные
+            loadPlaces();
+        });
+
         async function loadPlaces() {
             try {
                 const response = await fetch('/places');
+                if (!response.ok) throw new Error("Ошибка сервера");
+                
                 const data = await response.json();
                 placesData = data.places;
+                
                 renderList();
-                initMap();
+                addMarkers();
             } catch (error) {
-                console.error("Ошибка:", error);
+                console.error("Ошибка загрузки данных:", error);
+                // Если данных нет, показываем заглушку в консоли, карта останется пустой
             }
+        }
+
+        function addMarkers() {
+            placesData.forEach(place => {
+                const placemark = new ymaps.Placemark([place.lat, place.lon], {
+                    hintContent: place.name
+                }, {
+                    preset: 'islands#orangeIcon' 
+                });
+
+                placemark.events.add('click', () => {
+                    openCard(place);
+                });
+
+                // ИСПРАВЛЕНО: используем myMap.geoObjects
+                myMap.geoObjects.add(placemark);
+            });
         }
 
         function switchView(view) {
@@ -151,6 +184,12 @@
         function renderList() {
             const container = document.getElementById('list-container');
             container.innerHTML = '';
+            
+            if (placesData.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--hint-color);">Пока нет добавленных мест</div>';
+                return;
+            }
+
             placesData.forEach(place => {
                 const el = document.createElement('div');
                 el.className = 'list-item';
@@ -163,30 +202,6 @@
             });
         }
 
-        function initMap() {
-            ymaps.ready(function () {
-                myMap = new ymaps.Map("map", {
-                    center: [55.7558, 37.6173],
-                    zoom: 11,
-                    controls: ['zoomControl', 'geolocationControl']
-                });
-
-                placesData.forEach(place => {
-                    const placemark = new ymaps.Placemark([place.lat, place.lon], {
-                        hintContent: place.name
-                    }, {
-                        preset: 'islands#orangeIcon' 
-                    });
-
-                    placemark.events.add('click', () => {
-                        openCard(place);
-                    });
-
-                    myMap.geoObjects.add(placemark);
-                });
-            });
-        }
-
         function openCard(place) {
             document.getElementById('place-name').textContent = place.name;
             document.getElementById('place-category').textContent = place.category || 'Заведение';
@@ -194,11 +209,9 @@
             
             const btnRoute = document.getElementById('btn-route');
             
-            // Если в базе есть прямая ссылка на организацию - ведем туда!
             if (place.yandex_url) {
                 btnRoute.href = place.yandex_url;
             } else {
-                // Запасной вариант, если ссылки вдруг нет
                 btnRoute.href = `https://yandex.ru/maps/?pt=${place.lon},${place.lat}&z=17&l=map`;
             }
 
@@ -208,8 +221,6 @@
         function closeCard() {
             document.getElementById('card').classList.remove('open');
         }
-
-        loadPlaces();
     </script>
 </body>
 </html>
