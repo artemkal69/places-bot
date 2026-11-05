@@ -8,11 +8,8 @@
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
     <style>
         :root {
-            /* Наш фирменный цвет Local (Терракотовый / Warm Craft) */
             --brand-color: #FF5722; 
             --brand-color-active: #E64A19;
-            
-            /* Адаптация под тему Telegram */
             --bg-color: var(--tg-theme-bg-color, #ffffff);
             --text-color: var(--tg-theme-text-color, #000000);
             --hint-color: var(--tg-theme-hint-color, #999999);
@@ -21,7 +18,6 @@
 
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-color); color: var(--text-color); overflow: hidden; }
 
-        /* Шапка */
         #header {
             position: absolute; top: 0; left: 0; right: 0; z-index: 100;
             padding: 10px 15px; padding-top: calc(10px + env(safe-area-inset-top));
@@ -39,7 +35,6 @@
         }
         .toggle-btn.active { background: var(--brand-color); color: white; }
 
-        /* Контейнеры */
         #map-container, #list-container {
             width: 100%; height: 100%; position: absolute; top: 0; left: 0;
             box-sizing: border-box; padding-top: 60px;
@@ -47,7 +42,6 @@
         #map { width: 100%; height: 100%; }
         #list-container { overflow-y: auto; display: none; padding-bottom: 20px; }
         
-        /* Элементы списка */
         .list-item {
             background: var(--secondary-bg); margin: 10px 15px; padding: 16px;
             border-radius: 16px; display: flex; flex-direction: column; cursor: pointer;
@@ -56,7 +50,6 @@
         .list-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
         .list-desc { font-size: 14px; color: var(--hint-color); }
 
-        /* Нижняя карточка */
         #card {
             position: absolute; bottom: -100%; left: 0; width: 100%;
             background: var(--bg-color); border-radius: 24px 24px 0 0;
@@ -73,7 +66,8 @@
         }
 
         h2 { margin: 0 0 5px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;}
-        .category { color: var(--hint-color); font-size: 15px; margin-bottom: 15px; text-transform: capitalize; }
+        .category { color: var(--hint-color); font-size: 15px; margin-bottom: 10px; text-transform: capitalize; }
+        .address-text { font-size: 14px; color: var(--text-color); margin-bottom: 20px; opacity: 0.8;}
         
         .badge {
             display: inline-block; padding: 6px 12px; border-radius: 12px;
@@ -93,26 +87,23 @@
 </head>
 <body>
 
-    <!-- Шапка -->
     <div id="header">
         <div class="logo-text">Lo<span>c</span>al</div>
         <button id="btn-map" class="toggle-btn active" onclick="switchView('map')">Карта</button>
         <button id="btn-list" class="toggle-btn" onclick="switchView('list')">Список</button>
     </div>
 
-    <!-- Контейнер с картой -->
     <div id="map-container">
         <div id="map"></div>
     </div>
 
-    <!-- Контейнер со списком -->
     <div id="list-container"></div>
 
-    <!-- Детальная карточка -->
     <div id="card">
         <button class="close-btn" onclick="closeCard()">✕</button>
         <h2 id="place-name">Название</h2>
         <div class="category" id="place-category">Категория</div>
+        <div class="address-text" id="place-address">Адрес</div>
         <div><span class="badge">Сайта нет</span></div>
         <a href="#" id="btn-route" class="btn" target="_blank">Построить маршрут</a>
     </div>
@@ -165,7 +156,7 @@
                 el.className = 'list-item';
                 el.innerHTML = `
                     <div class="list-title">${place.name}</div>
-                    <div class="list-desc">${place.category || 'Заведение'}</div>
+                    <div class="list-desc">${place.category || 'Заведение'} • ${place.address || 'Адрес не указан'}</div>
                 `;
                 el.onclick = () => openCard(place);
                 container.appendChild(el);
@@ -176,12 +167,11 @@
             ymaps.ready(function () {
                 myMap = new ymaps.Map("map", {
                     center: [55.7558, 37.6173],
-                    zoom: 12,
+                    zoom: 11,
                     controls: ['zoomControl', 'geolocationControl']
                 });
 
                 placesData.forEach(place => {
-                    // Используем оранжевые маркеры под бренд Local (Warm Craft)
                     const placemark = new ymaps.Placemark([place.lat, place.lon], {
                         hintContent: place.name
                     }, {
@@ -192,7 +182,7 @@
                         openCard(place);
                     });
 
-                    myGeoObjects.add(placemark);
+                    myMap.geoObjects.add(placemark);
                 });
             });
         }
@@ -200,9 +190,12 @@
         function openCard(place) {
             document.getElementById('place-name').textContent = place.name;
             document.getElementById('place-category').textContent = place.category || 'Заведение';
+            document.getElementById('place-address').textContent = place.address || 'Адрес не указан';
             
             const btnRoute = document.getElementById('btn-route');
-            btnRoute.href = `https://yandex.ru/maps/?pt=${place.lon},${place.lat}&z=17&l=map`;
+            // Формируем ссылку на поиск места по названию и адресу
+            const searchText = `${place.name}, ${place.address || ''}`;
+            btnRoute.href = `https://yandex.ru/maps/?text=${encodeURIComponent(searchText)}`;
 
             document.getElementById('card').classList.add('open');
         }
