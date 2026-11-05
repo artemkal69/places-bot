@@ -53,7 +53,7 @@ def get_places(lat: float = 55.7558, lon: float = 37.6173, radius: float = 100.0
     query = """
         SELECT id, name, category, lat, lon, website, outdated_score, audit_reasons, rating
         FROM places 
-        WHERE (website IS NULL OR outdated_score >= 80)
+        WHERE website IS NULL
     """
     rows = conn.execute(query).fetchall()
     conn.close()
