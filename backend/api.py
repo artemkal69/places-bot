@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Путь к новой базе от OpenStreetMap
+# Путь к базе, которую создал OSM-парсер
 DB_PATH = Path(__file__).parent.parent / "data" / "local.db"
 
 
@@ -43,36 +43,45 @@ def haversine(lat1, lon1, lat2, lon2):
 
 @app.get("/places")
 def get_places(lat: float = 56.8587, lon: float = 35.9006, radius: float = 50.0):
-    conn = get_db()
-    # Выбираем все места из новой базы.
-    # Если хочешь фильтровать по отсутствию сайта, используй website_status
-    query = """
-        SELECT id, name, category, address, lat, lon, rating, yandex_url
-        FROM places 
-        WHERE website_status = 'not_listed'
-    """
-    rows = conn.execute(query).fetchall()
-    conn.close()
+    try:
+        conn = get_db()
+        # Берем ВСЕ места из базы (она уже отфильтрована OSM-парсером, там только те, у кого нет сайта)
+        query = """
+            SELECT id, name, category, address, lat, lon, rating, yandex_url
+            FROM places 
+        """
+        rows = conn.execute(query).fetchall()
+        conn.close()
 
-    result = []
-    for row in rows:
-        if row["lat"] is None or row["lon"] is None:
-            continue
-        dist = haversine(lat, lon, row["lat"], row["lon"])
-        if dist <= radius:
-            result.append(
-                {
-                    "id": row["id"],
-                    "name": row["name"],
-                    "category": row["category"],
-                    "address": row["address"],
-                    "lat": row["lat"],
-                    "lon": row["lon"],
-                    "rating": row["rating"],
-                    "yandex_url": row["yandex_url"],
-                }
-            )
-    return {"count": len(result), "places": result}
+        result = []
+        for row in rows:
+            # Проверяем, что координаты существуют и являются числами
+            if row["lat"] is None or row["lon"] is None:
+                continue
+
+            try:
+                dist = haversine(lat, lon, float(row["lat"]), float(row["lon"]))
+                if dist <= radius:
+                    result.append(
+                        {
+                            "id": row["id"],
+                            "name": row["name"],
+                            "category": row["category"] or "Заведение",
+                            "address": row["address"] or "Адрес не указан",
+                            "lat": row["lat"],
+                            "lon": row["lon"],
+                            "rating": row["rating"],
+                            "yandex_url": row["yandex_url"],
+                        }
+                    )
+            except Exception as e:
+                # Если координаты битые (например, строка вместо числа), пропускаем
+                continue
+
+        return {"count": len(result), "places": result}
+    except Exception as e:
+        print(f"Ошибка БД: {e}")
+        return {"count": 0, "places": []}
 
 
 @app.get("/place/{place_id}")
